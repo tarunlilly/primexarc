@@ -1,0 +1,9 @@
+id: mcp_read
+family: agent_access
+label: "MCP tool access (read)"
+capability_floor:
+  SEM: 3
+  GOV: 3
+  ACC: 2
+  AGG: 2
+gate_set: [privacy_column_names]

@@ -1,0 +1,19 @@
+{
+  "Completeness": 10,
+  "Accuracy": 10,
+  "Secure": 5,
+  "Quality": 10,
+  "Timeliness": 5,
+  "Token_Count": 5,
+  "GPT_Confidence": 10,
+  "Context_Quality": 10,
+  "Metadata_Presence": 10,
+  "Audience_Intentionality": 10,
+  "Diversity": 5,
+  "Audience_Accessibility": 5,
+  "KnowledgeBase_Ready": 5
+}
+
+
+
+

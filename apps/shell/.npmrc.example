@@ -1,0 +1,3 @@
+# JFrog Artifactory npm registry (Lilly org policy - no direct npmjs.org)
+registry=https://elilillyco.jfrog.io/artifactory/api/npm/Lilly-NPM/
+//elilillyco.jfrog.io/artifactory/api/npm/Lilly-NPM/:_authToken=YOUR_TOKEN_HERE

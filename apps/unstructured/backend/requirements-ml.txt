@@ -1,0 +1,5 @@
+# Optional ML & AI Dependencies
+# Install with: pip install -r requirements-ml.txt
+
+sentence-transformers>=2.7.0,<3.0.0  # Modern version compatible with latest huggingface_hub
+openai>=1.0.0,<2.0.0  # Compatible with Python 3.11 and 3.12

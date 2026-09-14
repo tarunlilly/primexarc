@@ -1,0 +1,11 @@
+id: time_series_forecast
+family: agent_access
+label: "Fine-tuning"
+capability_floor:
+  TMP: 4
+  FRS: 3
+  VOL: 3
+  SIG: 2
+  STA: 2
+  LBL: 3
+gate_set: [privacy_column_names]

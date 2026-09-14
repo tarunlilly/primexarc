@@ -1,0 +1,11 @@
+id: supervised_classification
+family: model_dev
+label: "Supervised classification"
+capability_floor:
+  LBL: 3
+  LKG: 3
+  SIG: 3
+  VOL: 3
+  TMP: 2
+  GOV: 2
+gate_set: [privacy_column_names, labels_leakage]

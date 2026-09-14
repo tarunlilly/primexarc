@@ -1,0 +1,42 @@
+name: CI — Shell
+
+on:
+  push:
+    branches: [main]
+    paths: ['apps/shell/**']
+  pull_request:
+    paths: ['apps/shell/**']
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/shell
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-path: apps/shell/package-lock.json
+
+      - name: Configure Artifactory registry
+        run: |
+          echo "@elilillyco:registry=https://elilillyco.jfrog.io/elilillyco/api/npm/Lilly-NPM/" > .npmrc
+          echo "//elilillyco.jfrog.io/elilillyco/api/npm/Lilly-NPM/:_authToken=${ARTIFACTORY_TOKEN}" >> .npmrc
+        env:
+          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build

@@ -1,0 +1,9 @@
+id: conformed_reference
+family: baseline
+label: "Conformed reference / master data"
+capability_floor:
+  JOIN: 4
+  SEM: 4
+  GOV: 2
+  ACC: 2
+gate_set: []

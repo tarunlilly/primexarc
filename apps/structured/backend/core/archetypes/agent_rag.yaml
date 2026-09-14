@@ -1,0 +1,9 @@
+id: agent_rag
+family: agent_access
+label: "Agent RAG context source"
+capability_floor:
+  SEM: 3
+  GOV: 3
+  FRS: 2
+  TXT: 2
+gate_set: [privacy_column_names]

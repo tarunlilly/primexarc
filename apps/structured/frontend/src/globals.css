@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design tokens ────────────────────────────────────────────────────── */
+/* Single source of truth for color. shadcn primitives auto-theme by
+   reading these. Hue values in HSL so Tailwind opacity modifiers work. */
+
+@layer base {
+  :root {
+    /* Default surface: warm-paper white pages (Dashboard, Support) */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 7%;
+
+    /* Cards on white pages */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+
+    /* Primary = dark red, used for headings + primary buttons on white */
+    --primary: 0 76% 28%;        /* #7F1111 */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary = soft warm grey */
+    --secondary: 24 10% 96%;
+    --secondary-foreground: 0 0% 9%;
+
+    --muted: 24 10% 96%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 0 78% 43%;         /* #C41A1A — Lilly red */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 76% 28%;
+
+    /* Brand palette */
+    --lilly-red: 0 78% 43%;      /* #C41A1A */
+    --lilly-dred: 0 76% 28%;     /* #7F1111 */
+    --lilly-crimson: 0 100% 27%; /* #8B0000 */
+
+    /* Tier colors — used only on Dashboard */
+    --tier-green-base: 142 71% 30%;
+    --tier-green-light: 141 84% 93%;
+    --tier-amber-base: 30 80% 36%;
+    --tier-amber-light: 48 100% 91%;
+    --tier-red-base: 0 78% 43%;
+    --tier-red-light: 0 93% 94%;
+
+    /* Flow diagram step group colors — used only on Help Center */
+    --flow-raw-bg:       210 40% 96%;   /* pale slate blue  — raw data */
+    --flow-raw-border:   210 30% 82%;
+    --flow-raw-text:     210 45% 42%;
+
+    --flow-profile-bg:   172 38% 93%;   /* pale teal        — Python profiling */
+    --flow-profile-border: 172 32% 72%;
+    --flow-profile-text: 172 50% 32%;
+
+    --flow-ai-bg:        255 35% 95%;   /* pale violet      — AI layer */
+    --flow-ai-border:    255 28% 78%;
+    --flow-ai-text:      255 38% 50%;
+
+    /* Dimension classification tags — Help Center dimension pills */
+    --tag-data-bg:       210 40% 94%;   /* slate blue — data engineering */
+    --tag-data-text:     210 50% 38%;
+    --tag-ml-bg:         162 40% 92%;   /* teal-green — machine learning */
+    --tag-ml-text:       162 55% 30%;
+    --tag-ai-bg:         270 35% 94%;   /* soft purple — AI governance/readiness */
+    --tag-ai-text:       270 42% 45%;
+
+    /* Geometry */
+    --radius: 0.75rem;           /* 12px — the "medium" softness */
+  }
+
+  /* Red-mode: the header/page is on a red surface. Used by <Layout variant="red">
+     to invert the card / muted / border tones so children read correctly. */
+  .red-mode {
+    --background: 0 78% 43%;
+    --foreground: 0 0% 100%;
+    --card: 0 78% 43%;
+    --card-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 78% 43%;
+    --secondary: 0 76% 38%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 76% 38%;
+    --muted-foreground: 0 0% 90%;
+    --border: 0 50% 100% / 0.18;
+    --input: 0 76% 50%;
+    --ring: 0 0% 100%;
+  }
+
+  .crimson-mode {
+    --background: 0 100% 27%;
+    --foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 100% 27%;
+    --muted: 0 100% 22%;
+    --muted-foreground: 0 0% 90%;
+    --border: 0 50% 100% / 0.18;
+  }
+
+  * { @apply border-border; }
+
+  html, body, #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "ss01", "cv01";
+  }
+}
+
+/* ─── Logo recoloring ──────────────────────────────────────────────────── */
+/* The Lilly logo PNG is red-on-transparent. On red/crimson surfaces, we want
+   white. `brightness-0 invert` flattens then inverts, giving us a clean
+   white silhouette. Applied conditionally in Layout. */
+
+.logo-white {
+  filter: brightness(0) invert(1);
+}
+
+/* ─── Custom utilities ─────────────────────────────────────────────────── */
+
+/* Subtle grain texture on hero sections — adds the "atmospheric depth" the
+   frontend skill calls for without dominating. */
+.bg-grain {
+  background-image:
+    radial-gradient(ellipse at top left, rgba(255,255,255,0.06), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(0,0,0,0.08), transparent 50%);
+}
+
+.surface-vignette-subtle {
+  background-color: hsl(var(--card));
+  background-image: radial-gradient(
+    ellipse at center,
+    transparent 58%,
+    hsl(var(--accent) / 0.03) 100%
+  );
+}
+
+/* Hide scrollbar but keep scroll */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Flip card 3D ─────────────────────────────────────────────────────── */
+.flip-card-container {
+  perspective: 1000px;
+}
+.flip-card-inner {
+  transform-style: preserve-3d;
+}
+.flip-card-flipped {
+  transform: rotateY(180deg);
+}
+.flip-card-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+/* Reduced motion: crossfade instead of 3D flip */
+@media (prefers-reduced-motion: reduce) {
+  .flip-card-inner {
+    transform: none !important;
+  }
+  .flip-card-face {
+    backface-visibility: visible;
+    transition: opacity 0.2s;
+  }
+}
+
+/* ─── Action plan cross-link highlight ──────────────────────────────────── */
+.scroll-highlight {
+  animation: pulse-highlight 1.5s ease-out;
+}
+@keyframes pulse-highlight {
+  0% { box-shadow: 0 0 0 0 hsl(var(--accent) / 0.4); }
+  70% { box-shadow: 0 0 0 8px hsl(var(--accent) / 0); }
+  100% { box-shadow: 0 0 0 0 hsl(var(--accent) / 0); }
+}

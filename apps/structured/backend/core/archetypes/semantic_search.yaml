@@ -1,0 +1,9 @@
+id: semantic_search
+family: agent_access
+label: "RAG / knowledge retrieval"
+capability_floor:
+  SEM: 3
+  TXT: 3
+  GOV: 2
+  FRS: 2
+gate_set: [privacy_column_names]

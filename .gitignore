@@ -1,0 +1,59 @@
+# PrimeXarc — root .gitignore
+#
+# IMPORTANT: unlike all three source repos (ibu-ai-ready-data, primedata-ui,
+# primedata-backend), which all ignore .claude/ or .claude/settings.json
+# entirely, THIS repo's .claude/ is checked into version control on purpose —
+# agents/, skills/, hooks/, and settings.json ARE the deliverable. Do not add
+# a blanket ".claude/" ignore line here; only the personal/runtime bits below
+# are excluded.
+
+# --- Claude Code: personal + runtime state only, NOT the config itself ---
+.claude/settings.local.json
+.claude/.last-validated
+.claude/.last-db-review
+.claude/worktrees/
+
+# --- Python ---
+__pycache__/
+*.py[codz]
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+ENV/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+dist/
+build/
+
+# --- Node ---
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+# Real .npmrc contains Artifactory tokens — gitignore it; use .npmrc.example as template
+.npmrc
+
+# --- Env / secrets (see .claude/hooks/block-secrets.sh — this backs the same rule) ---
+.env
+.env.*
+!.env.*.example
+!.env.example
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Misc ---
+*.log
+.terraform/

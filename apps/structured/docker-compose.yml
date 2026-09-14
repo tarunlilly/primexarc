@@ -1,0 +1,26 @@
+services:
+  backend:
+    image: ${BACKEND_IMAGE:-ibu-ai-ready-data-backend:latest}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - CORS_ORIGINS=["http://localhost:80","http://localhost"]
+    restart: unless-stopped
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ibu-ai-ready-data-frontend:latest}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped

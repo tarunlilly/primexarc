@@ -1,0 +1,11 @@
+id: feature_store
+family: model_dev
+label: "Feature store source"
+capability_floor:
+  JOIN: 3
+  FRS: 3
+  SIG: 3
+  ACC: 3
+  TMP: 2
+  LIN: 3
+gate_set: [privacy_column_names]

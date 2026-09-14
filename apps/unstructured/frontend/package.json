@@ -1,0 +1,52 @@
+{
+  "name": "primedata-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@grafana/faro-web-sdk": "^2.3.1",
+    "@grafana/faro-web-tracing": "^2.3.1",
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.214.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.214.0",
+    "@opentelemetry/instrumentation-fetch": "^0.214.0",
+    "@opentelemetry/instrumentation-xml-http-request": "^0.214.0",
+    "@opentelemetry/resources": "^2.6.1",
+    "@opentelemetry/sdk-metrics": "^2.6.1",
+    "@opentelemetry/sdk-trace-web": "^2.6.1",
+    "@opentelemetry/semantic-conventions": "^1.40.0",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@tanstack/react-query": "^5.90.16",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.294.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-joyride": "^2.9.3",
+    "react-router-dom": "^6.28.0",
+    "reactflow": "^11.11.4",
+    "tailwind-merge": "^2.0.0",
+    "tailwindcss-animate": "^1.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.42",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.3.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.55.0",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.3.2",
+    "vite": "^5.4.0",
+    "vite-tsconfig-paths": "^5.1.0"
+  }
+}

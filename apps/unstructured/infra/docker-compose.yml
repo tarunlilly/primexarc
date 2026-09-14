@@ -1,0 +1,344 @@
+# docker-compose.yml (infra/docker-compose.yml)
+# Development Environment Configuration
+#
+# This file orchestrates all services needed for PrimeData development:
+# - PostgreSQL: Database for both Airflow metadata and PrimeData app
+# - OpenSearch: Vector database for embeddings and semantic search
+# - MinIO: S3-compatible object storage
+# - Airflow: Workflow orchestration and DAG execution
+#
+# Key Configuration:
+#   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN  -> Airflow metadata DB (aird)
+#   DATABASE_URL / POSTGRES_DB          -> PrimeData app DB (must match backend DB)
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:15}
+    container_name: aird-postgres
+    networks:
+      - aird-network
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-aird}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aird}
+      POSTGRES_DB: ${POSTGRES_DB:-aird}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aird} -d ${POSTGRES_DB:-aird}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  opensearch:
+    image: ${OPENSEARCH_IMAGE:-opensearchproject/opensearch:latest}
+    container_name: aird-opensearch
+    networks:
+      - aird-network
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_ADMIN_PASSWORD:-Admin@123}
+    ports:
+      - "${OPENSEARCH_PORT:-9200}:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    restart: unless-stopped
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  opensearch-dashboards:
+    image: ${OPENSEARCH_DASHBOARDS_IMAGE:-opensearchproject/opensearch-dashboards:latest}
+    container_name: aird-opensearch-dashboards
+    networks:
+      - aird-network
+    ports:
+      - "${OPENSEARCH_DASHBOARDS_UI_PORT:-5601}:5601"
+    environment:
+      OPENSEARCH_HOSTS: '["http://opensearch:9200"]'
+      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-admin}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:-Admin@123}
+    depends_on:
+      - opensearch
+    restart: unless-stopped
+
+  minio:
+    image: ${MINIO_IMAGE:-minio/minio:latest}
+    container_name: aird-minio
+    networks:
+      - aird-network
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_HOST_PORT:-9002}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-9003}:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  minio-init:
+    image: ${MINIO_MC_IMAGE:-minio/mc:latest}
+    container_name: aird-minio-init
+    networks:
+      - aird-network
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-aird}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+    volumes:
+      - ./minio/init.sh:/scripts/init.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: "/scripts/init.sh"
+    restart: "no"
+
+  airflow-init:
+    env_file:
+      - .env.local
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    image: ${AIRFLOW_IMAGE:-primedata-airflow:2.7.1-py3.11}
+    container_name: aird-airflow-init
+    networks:
+      - aird-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Airflow metadata DB (keep separate)
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-postgresql+psycopg2://aird:aird@postgres:5432/aird}
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR:-LocalExecutor}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES:-false}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+      PYTHONPATH: "/opt/airflow/backend/src"
+
+      # ✅ PrimeData APP DB settings (MUST MATCH backend DB)
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PORT: "${POSTGRES_PORT:-5432}"
+      POSTGRES_USER: "${POSTGRES_USER:-aird}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-aird}"
+
+      # Single source of truth for APP DB
+      # Default matches your backend DB (where products exist)
+      PRIMEDATA_APP_DB: "${PRIMEDATA_APP_DB:-primedata_backend}"
+      POSTGRES_DB: "${PRIMEDATA_APP_DB:-primedata_backend}"
+      DATABASE_URL: "postgresql+psycopg2://${POSTGRES_USER:-aird}:${POSTGRES_PASSWORD:-aird}@postgres:${POSTGRES_PORT:-5432}/${PRIMEDATA_APP_DB:-primedata_backend}"
+
+      # ✅ MinIO inside docker network
+      MINIO_HOST: "minio:9000"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-aird}
+      MINIO_SECURE: "false"
+
+      # ✅ OpenSearch (replacing Qdrant)
+      OPENSEARCH_URL: "http://opensearch:9200"
+      OPENSEARCH_ENABLED: "true"
+      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-admin}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:-Admin@123}
+
+      # ✅ Azure OpenAI Integration (NEW)
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-02-15-preview}
+      AZURE_OPENAI_DEPLOYMENT_NAME: ${AZURE_OPENAI_DEPLOYMENT_NAME:-gpt-4}
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT:-text-embedding-3-large}
+      AZURE_OPENAI_EMBEDDING_DIMENSIONS: ${AZURE_OPENAI_EMBEDDING_DIMENSIONS:-3072}
+
+      # ✅ Azure Storage Support (Optional)
+      AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-}
+      AZURE_STORAGE_ACCOUNT_KEY: ${AZURE_STORAGE_ACCOUNT_KEY:-}
+      AZURE_CONTAINER_NAME: ${AZURE_CONTAINER_NAME:-primedata}
+
+      # SSL certificates for fastembed model downloads
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+      CURL_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+
+      AIRFLOW_ADMIN_USER: ${AIRFLOW_ADMIN_USER:-admin}
+      AIRFLOW_ADMIN_FIRSTNAME: ${AIRFLOW_ADMIN_FIRSTNAME:-Admin}
+      AIRFLOW_ADMIN_LASTNAME: ${AIRFLOW_ADMIN_LASTNAME:-User}
+      AIRFLOW_ADMIN_EMAIL: ${AIRFLOW_ADMIN_EMAIL:-admin@example.com}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-admin123}
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - ../plugins:/opt/airflow/plugins
+      - ../backend:/opt/airflow/backend:ro
+      - ./airflow/init.sh:/scripts/airflow_init.sh:ro
+    entrypoint: ["/bin/bash", "-lc"]
+    command: "bash /scripts/airflow_init.sh"
+    restart: "no"
+
+  airflow-webserver:
+    env_file:
+      - .env.local
+    build:
+      context: ..
+      dockerfile: infra/airflow/Dockerfile
+    image: ${AIRFLOW_IMAGE:-primedata-airflow:2.7.1-py3.11}
+    container_name: aird-airflow-webserver
+    networks:
+      - aird-network
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      # Airflow metadata DB (keep separate)
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-postgresql+psycopg2://aird:aird@postgres:5432/aird}
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR:-LocalExecutor}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES:-false}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+      PYTHONPATH: "/opt/airflow/backend/src"
+
+      # ✅ PrimeData APP DB (MUST MATCH backend DB)
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PORT: "${POSTGRES_PORT:-5432}"
+      POSTGRES_USER: "${POSTGRES_USER:-aird}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-aird}"
+      PRIMEDATA_APP_DB: "${PRIMEDATA_APP_DB:-primedata_backend}"
+      POSTGRES_DB: "${PRIMEDATA_APP_DB:-primedata_backend}"
+      DATABASE_URL: "postgresql+psycopg2://${POSTGRES_USER:-aird}:${POSTGRES_PASSWORD:-aird}@postgres:${POSTGRES_PORT:-5432}/${PRIMEDATA_APP_DB:-primedata_backend}"
+
+      # ✅ MinIO
+      MINIO_HOST: "minio:9000"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-aird}
+      MINIO_SECURE: "false"
+
+      # ✅ OpenSearch
+      OPENSEARCH_URL: "http://opensearch:9200"
+      OPENSEARCH_ENABLED: "true"
+      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-admin}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:-Admin@123}
+
+      # ✅ Azure OpenAI Integration (NEW)
+      AZURE_OPENAI_API_KEY: ${AZURE_OPENAI_API_KEY:-}
+      AZURE_OPENAI_ENDPOINT: ${AZURE_OPENAI_ENDPOINT:-}
+      AZURE_OPENAI_API_VERSION: ${AZURE_OPENAI_API_VERSION:-2024-02-15-preview}
+      AZURE_OPENAI_DEPLOYMENT_NAME: ${AZURE_OPENAI_DEPLOYMENT_NAME:-gpt-4}
+      AZURE_OPENAI_EMBEDDING_DEPLOYMENT: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT:-text-embedding-3-large}
+      AZURE_OPENAI_EMBEDDING_DIMENSIONS: ${AZURE_OPENAI_EMBEDDING_DIMENSIONS:-3072}
+
+      # ✅ Azure Storage Support (Optional)
+      AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-}
+      AZURE_STORAGE_ACCOUNT_KEY: ${AZURE_STORAGE_ACCOUNT_KEY:-}
+      AZURE_CONTAINER_NAME: ${AZURE_CONTAINER_NAME:-primedata}
+
+      # SSL certificates for fastembed model downloads
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+      CURL_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+
+      # ✅ Reduce RAM usage on small machines (8GB laptops / podman VM)
+      AIRFLOW__WEBSERVER__WORKERS: "1"
+      AIRFLOW__SCHEDULER__PARSING_PROCESSES: "1"
+      AIRFLOW__CORE__PARALLELISM: "4"
+      AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "2"
+      AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: "1"
+    ports:
+      - "${AIRFLOW_WEBSERVER_PORT:-8080}:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ~/.cache/fastembed:/root/.cache/fastembed
+      - airflow_logs:/opt/airflow/logs
+      - ../plugins:/opt/airflow/plugins
+      - ../backend:/opt/airflow/backend:ro
+    command: ["airflow", "webserver"]
+    restart: unless-stopped
+
+  airflow-scheduler:
+    env_file:
+      - .env.local
+    build:
+      context: ./airflow
+      dockerfile: Dockerfile
+    image: ${AIRFLOW_IMAGE:-primedata-airflow:2.7.1-py3.11}
+    container_name: aird-airflow-scheduler
+    networks:
+      - aird-network
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      # Airflow metadata DB (keep separate)
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-postgresql+psycopg2://aird:aird@postgres:5432/aird}
+      AIRFLOW__CORE__EXECUTOR: ${AIRFLOW__CORE__EXECUTOR:-LocalExecutor}
+      AIRFLOW__CORE__LOAD_EXAMPLES: ${AIRFLOW__CORE__LOAD_EXAMPLES:-false}
+      AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-}
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session"
+      PYTHONPATH: "/opt/airflow/backend/src"
+
+      # ✅ PrimeData APP DB (MOST IMPORTANT for task runtime)
+      POSTGRES_HOST: "postgres"
+      POSTGRES_PORT: "${POSTGRES_PORT:-5432}"
+      POSTGRES_USER: "${POSTGRES_USER:-aird}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-aird}"
+      PRIMEDATA_APP_DB: "${PRIMEDATA_APP_DB:-primedata_backend}"
+      POSTGRES_DB: "${PRIMEDATA_APP_DB:-primedata_backend}"
+      DATABASE_URL: "postgresql+psycopg2://${POSTGRES_USER:-aird}:${POSTGRES_PASSWORD:-aird}@postgres:${POSTGRES_PORT:-5432}/${PRIMEDATA_APP_DB:-primedata_backend}"
+
+      # ✅ MinIO
+      MINIO_HOST: "minio:9000"
+      MINIO_ENDPOINT: "minio:9000"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-aird}
+      MINIO_SECURE: "false"
+
+      # ✅ OpenSearch
+      OPENSEARCH_URL: "http://opensearch:9200"
+      OPENSEARCH_ENABLED: "true"
+      OPENSEARCH_USERNAME: ${OPENSEARCH_USERNAME:-admin}
+      OPENSEARCH_PASSWORD: ${OPENSEARCH_ADMIN_PASSWORD:-Admin@123}
+
+      # SSL certificates for fastembed model downloads
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+      CURL_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+
+      # ✅ Reduce RAM usage on small machines (8GB laptops / podman VM)
+      AIRFLOW__WEBSERVER__WORKERS: "1"
+      AIRFLOW__SCHEDULER__PARSING_PROCESSES: "1"
+      AIRFLOW__CORE__PARALLELISM: "4"
+      AIRFLOW__CORE__MAX_ACTIVE_TASKS_PER_DAG: "2"
+      AIRFLOW__CORE__MAX_ACTIVE_RUNS_PER_DAG: "1"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ~/.cache/fastembed:/root/.cache/fastembed
+      - airflow_logs:/opt/airflow/logs
+      - ../plugins:/opt/airflow/plugins
+      - ../backend:/opt/airflow/backend:ro
+    command: ["airflow", "scheduler"]
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  opensearch_data:
+  minio_data:
+  airflow_logs:
+
+networks:
+  aird-network:
+    driver: bridge

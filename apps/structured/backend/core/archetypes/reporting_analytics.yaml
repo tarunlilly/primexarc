@@ -1,0 +1,10 @@
+id: reporting_analytics
+family: baseline
+label: "Human reporting & analytics"
+capability_floor:
+  AGG: 3
+  SEM: 3
+  JOIN: 3
+  TMP: 2
+  GOV: 2
+gate_set: [privacy_column_names]

@@ -1,0 +1,9 @@
+id: nl_query
+family: agent_access
+label: "Natural language query"
+capability_floor:
+  SEM: 4
+  GOV: 2
+  AGG: 3
+  TMP: 2
+gate_set: [privacy_column_names]

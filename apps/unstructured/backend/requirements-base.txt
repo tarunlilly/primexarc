@@ -1,0 +1,47 @@
+# Core Python Backend Dependencies - Base Requirements
+# Python Version Compatibility: Supports Python 3.11 and 3.12
+
+# Web Framework
+fastapi==0.104.1  # Compatible with Python 3.11 and 3.12
+uvicorn[standard]==0.24.0  # Compatible with Python 3.11 and 3.12
+python-multipart==0.0.6
+
+# Data Validation & Settings
+pydantic>=2.0.0,<3.0.0  # Compatible with Python 3.11 and 3.12 (required by pydantic-settings)
+pydantic-settings>=2.0.0,<3.0.0  # Compatible with Python 3.11 and 3.12
+email-validator>=2.0.0
+dnspython>=2.4.0  # For DNS/MX record validation
+
+# Database
+SQLAlchemy==2.0.23  # Compatible with Python 3.11 and 3.12
+alembic==1.12.1  # Compatible with Python 3.11 and 3.12
+psycopg2-binary==2.9.9  # Compatible with Python 3.11 and 3.12
+
+# Authentication & Security
+PyJWT>=2.8.0,<3.0.0  # For JWT token encoding/decoding (used in security.py and jwt_keys.py)
+cryptography==41.0.7  # Compatible with Python 3.11 and 3.12
+passlib[bcrypt]==1.7.4  # Compatible with Python 3.11 and 3.12
+bcrypt<4.0.0,>=3.2.0  # Compatible with Python 3.11 and 3.12
+
+# HTTP Clients
+httpx==0.25.2  # Compatible with Python 3.11 and 3.12
+
+# Vector Database
+elasticsearch==8.12.0  # Elasticsearch client with native vector search support
+
+# Storage (Object Storage - S3 only)
+# Using boto3 (AWS SDK) instead - included in requirements-cloud.txt
+# for S3 support
+
+# Data Processing
+regex>=2023.0.0,<2024.0.0  # Compatible with Python 3.11 and 3.12
+numpy<2.0.0,>=1.24.0  # Compatible with Python 3.11 and 3.12 (explicit upper bound for compatibility)
+
+# Utilities
+tenacity==8.2.3  # Compatible with Python 3.11 and 3.12
+loguru==0.7.2  # Compatible with Python 3.11 and 3.12
+pypdf==3.17.4  # Compatible with Python 3.11 and 3.12
+packaging>=23.0,<25.0  # For version parsing and compatibility checks
+
+# Payment Processing
+stripe>=5.0.0,<6.0.0  # Compatible with Python 3.11 and 3.12

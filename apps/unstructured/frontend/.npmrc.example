@@ -1,0 +1,4 @@
+# JFrog Artifactory npm registry (Lilly org policy - no direct npmjs.org)
+# Replace ARTIFACTORY_URL_PLACEHOLDER with the actual Artifactory instance URL
+registry=https://ARTIFACTORY_URL_PLACEHOLDER/api/npm/npm-virtual/
+//ARTIFACTORY_URL_PLACEHOLDER/api/npm/npm-virtual/:_authToken=${NPM_TOKEN}

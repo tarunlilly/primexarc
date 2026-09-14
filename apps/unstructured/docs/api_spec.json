@@ -1,0 +1,738 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "PrimeData Backend API",
+    "description": "Enterprise data quality and AI readiness platform with document processing, quality validation, and vector search capabilities",
+    "version": "1.0.0",
+    "contact": {
+      "name": "PrimeData Support",
+      "url": "https://primedata.io"
+    },
+    "license": {
+      "name": "Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.primedata.io",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Development server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT token obtained from /api/v1/auth/login"
+      }
+    },
+    "schemas": {
+      "UserResponse": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "description": "User ID"},
+          "email": {"type": "string", "format": "email"},
+          "name": {"type": "string"},
+          "first_name": {"type": "string"},
+          "last_name": {"type": "string"},
+          "timezone": {"type": "string", "default": "UTC"},
+          "auth_provider": {"type": "string", "enum": ["google", "simple", "none", "bouncer"]},
+          "is_active": {"type": "boolean"},
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "WorkspaceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "name": {"type": "string"},
+          "settings": {"type": "object"},
+          "created_at": {"type": "string", "format": "date-time"},
+          "members_count": {"type": "integer"},
+          "products_count": {"type": "integer"}
+        }
+      },
+      "ProductResponse": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "workspace_id": {"type": "string", "format": "uuid"},
+          "name": {"type": "string"},
+          "status": {"type": "string", "enum": ["draft", "running", "ready", "failed"]},
+          "current_version": {"type": "integer"},
+          "promoted_version": {"type": "integer"},
+          "playbook_id": {"type": "string"},
+          "trust_score": {"type": "number", "format": "float"},
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "ChunksResponse": {
+        "type": "object",
+        "properties": {
+          "total_count": {"type": "integer"},
+          "offset": {"type": "integer"},
+          "limit": {"type": "integer"},
+          "chunks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {"type": "string"},
+                "text": {"type": "string"},
+                "source": {"type": "string", "description": "Source file name"},
+                "page_number": {"type": "integer"},
+                "chunk_index": {"type": "integer"},
+                "section": {"type": "string"},
+                "quality_scores": {
+                  "type": "object",
+                  "properties": {
+                    "coherence": {"type": "number", "format": "float"},
+                    "noise": {"type": "number", "format": "float"},
+                    "sentence_complete": {"type": "boolean"}
+                  }
+                },
+                "relevance_score": {"type": "number", "format": "float", "description": "Vector search relevance score"},
+                "created_at": {"type": "string", "format": "date-time"}
+              }
+            }
+          }
+        }
+      },
+      "PipelineRunResponse": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "product_id": {"type": "string", "format": "uuid"},
+          "version": {"type": "integer"},
+          "mode": {"type": "string", "enum": ["full", "incremental"]},
+          "status": {"type": "string", "enum": ["queued", "running", "succeeded", "failed"]},
+          "started_at": {"type": "string", "format": "date-time"},
+          "completed_at": {"type": "string", "format": "date-time"},
+          "error_message": {"type": "string"},
+          "metrics": {"type": "object"}
+        }
+      },
+      "ArtifactResponse": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string", "format": "uuid"},
+          "pipeline_run_id": {"type": "string", "format": "uuid"},
+          "stage_name": {"type": "string"},
+          "artifact_name": {"type": "string"},
+          "artifact_type": {"type": "string"},
+          "file_size": {"type": "integer", "description": "Size in bytes"},
+          "checksum": {"type": "string"},
+          "download_url": {"type": "string", "format": "uri", "description": "Presigned URL for download"},
+          "created_at": {"type": "string", "format": "date-time"}
+        }
+      },
+      "DataQualityMetrics": {
+        "type": "object",
+        "properties": {
+          "coherence_score": {"type": "number", "format": "float", "minimum": 0, "maximum": 1},
+          "noise_level": {"type": "number", "format": "float", "minimum": 0, "maximum": 1},
+          "completeness": {"type": "number", "format": "float", "minimum": 0, "maximum": 1},
+          "violations_count": {"type": "integer"},
+          "drill_down": {
+            "type": "object",
+            "properties": {
+              "low_quality_chunks": {"type": "integer"},
+              "high_noise_chunks": {"type": "integer"},
+              "mid_sentence_chunks": {"type": "integer"}
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "detail": {"type": "string"},
+          "status_code": {"type": "integer"},
+          "error_code": {"type": "string"}
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/users/me": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get current user info",
+        "operationId": "getCurrentUser",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Current user information",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/UserResponse"}}}
+          },
+          "401": {"description": "Unauthorized"}
+        }
+      }
+    },
+    "/api/v1/workspaces": {
+      "get": {
+        "tags": ["Workspaces"],
+        "summary": "List user's workspaces",
+        "operationId": "listWorkspaces",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "List of workspaces",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/WorkspaceResponse"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Workspaces"],
+        "summary": "Create new workspace",
+        "operationId": "createWorkspace",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string", "minLength": 1}
+                },
+                "required": ["name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Workspace created",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/WorkspaceResponse"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/products": {
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create new product",
+        "operationId": "createProduct",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string"},
+                  "use_case_description": {"type": "string"},
+                  "playbook_id": {"type": "string"},
+                  "chunking_config": {"type": "object"}
+                },
+                "required": ["name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ProductResponse"}}}
+          }
+        }
+      },
+      "get": {
+        "tags": ["Products"],
+        "summary": "List products",
+        "operationId": "listProducts",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {"type": "integer", "default": 50}
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {"type": "integer", "default": 0}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {"$ref": "#/components/schemas/ProductResponse"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products/{product_id}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product details",
+        "operationId": "getProduct",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product details",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ProductResponse"}}}
+          },
+          "404": {"description": "Product not found"}
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product",
+        "operationId": "updateProduct",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string"},
+                  "chunking_config": {"type": "object"},
+                  "embedding_config": {"type": "object"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ProductResponse"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/datasources/{datasource_id}/upload-files": {
+      "post": {
+        "tags": ["DataSources"],
+        "summary": "Upload files (multi-file batch)",
+        "operationId": "uploadFiles",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "datasource_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "files": {
+                    "type": "array",
+                    "items": {"type": "string", "format": "binary"}
+                  }
+                },
+                "required": ["files"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {"type": "boolean"},
+                    "uploaded_count": {"type": "integer"},
+                    "error_count": {"type": "integer"},
+                    "uploaded_files": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "filename": {"type": "string"},
+                          "size": {"type": "integer"},
+                          "key": {"type": "string"}
+                        }
+                      }
+                    },
+                    "errors": {"type": "array", "items": {"type": "string"}}
+                  }
+                }
+              }
+            }
+          },
+          "400": {"description": "Invalid datasource type"}
+        }
+      }
+    },
+    "/api/v1/pipeline/run": {
+      "post": {
+        "tags": ["Pipeline"],
+        "summary": "Trigger pipeline execution",
+        "operationId": "triggerPipeline",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "product_id": {"type": "string", "format": "uuid"},
+                  "version": {"type": "integer"},
+                  "mode": {"type": "string", "enum": ["full", "incremental"]}
+                },
+                "required": ["product_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pipeline run created",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PipelineRunResponse"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/pipeline/artifacts": {
+      "get": {
+        "tags": ["Pipeline"],
+        "summary": "List pipeline artifacts",
+        "operationId": "listArtifacts",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "query",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {"type": "integer"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of artifacts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "artifacts": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/ArtifactResponse"}
+                    },
+                    "total": {"type": "integer"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products/{product_id}/chunks": {
+      "get": {
+        "tags": ["Chunks"],
+        "summary": "Search chunks (vector search)",
+        "operationId": "getChunks",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Search query",
+            "schema": {"type": "string"}
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {"type": "integer"}
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {"type": "integer", "default": 50}
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {"type": "integer", "default": 0}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chunks search results",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ChunksResponse"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/products/{product_id}/quality-improvement": {
+      "get": {
+        "tags": ["Quality"],
+        "summary": "Get quality improvement metrics",
+        "operationId": "getQualityImprovement",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quality metrics with drill-down",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DataQualityMetrics"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/products/{product_id}/rules": {
+      "get": {
+        "tags": ["DataQuality"],
+        "summary": "Get data quality rules",
+        "operationId": "getDataQualityRules",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data quality rules",
+            "content": {"application/json": {"schema": {"type": "object"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/products/{product_id}/rules/seed": {
+      "post": {
+        "tags": ["DataQuality"],
+        "summary": "Initialize default DQ rules",
+        "operationId": "seedDataQualityRules",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          },
+          {
+            "name": "overwrite",
+            "in": "query",
+            "schema": {"type": "boolean", "default": false}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rules initialized",
+            "content": {"application/json": {"schema": {"type": "object"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/ai-readiness/assess/{product_id}": {
+      "get": {
+        "tags": ["AIReadiness"],
+        "summary": "Assess AI readiness",
+        "operationId": "assessAIReadiness",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "product_id",
+            "in": "path",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AI readiness assessment",
+            "content": {"application/json": {"schema": {"type": "object"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/analytics/metrics": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Get workspace analytics",
+        "operationId": "getAnalyticsMetrics",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {"type": "string", "format": "uuid"}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analytics metrics",
+            "content": {"application/json": {"schema": {"type": "object"}}}
+          }
+        }
+      }
+    },
+    "/api/v1/acl": {
+      "post": {
+        "tags": ["Governance"],
+        "summary": "Create ACL permission",
+        "operationId": "createACL",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_id": {"type": "string"},
+                  "resource_type": {"type": "string"},
+                  "resource_id": {"type": "string", "format": "uuid"},
+                  "permission": {"type": "string", "enum": ["READ", "WRITE", "ADMIN"]}
+                },
+                "required": ["user_id", "resource_type", "resource_id", "permission"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {"description": "ACL created"}
+        }
+      },
+      "get": {
+        "tags": ["Governance"],
+        "summary": "List ACLs",
+        "operationId": "listACLs",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {"description": "List of ACLs"}
+        }
+      }
+    },
+    "/api/v1/audit/logs": {
+      "get": {
+        "tags": ["Audit"],
+        "summary": "List audit logs",
+        "operationId": "listAuditLogs",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {"type": "integer", "default": 100}
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {"type": "integer", "default": 0}
+          }
+        ],
+        "responses": {
+          "200": {"description": "Audit logs"}
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["System"],
+        "summary": "Health check",
+        "operationId": "healthCheck",
+        "responses": {
+          "200": {
+            "description": "System healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {"type": "string"},
+                    "database": {"type": "string"},
+                    "opensearch": {"type": "string"},
+                    "storage": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {"bearerAuth": []}
+  ]
+}

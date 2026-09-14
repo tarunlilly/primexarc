@@ -1,0 +1,5 @@
+# Optional Analytics Dependencies
+# Install with: pip install -r requirements-analytics.txt
+
+pandas>=2.0.0,<3.0.0  # Compatible with Python 3.11 and 3.12
+matplotlib>=3.8.0  # Plotting and visualization for report generation

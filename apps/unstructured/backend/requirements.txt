@@ -1,0 +1,120 @@
+# ============================================================================
+# PrimeData Backend - Consolidated Requirements File
+# Python Version Compatibility: Supports Python 3.11 and 3.12
+# Tested on: Python 3.11 (production/deploy) and Python 3.12 (local dev)
+# ============================================================================
+#
+# This consolidated requirements.txt includes ALL dependencies from:
+# - requirements-base.txt (core dependencies)
+# - requirements-cloud.txt (cloud storage - S3 only, GCS removed)
+# - requirements-ml.txt (machine learning & AI)
+# - requirements-analytics.txt (data analytics)
+# - requirements-ci.txt (testing & CI)
+#
+# For Docker builds with selective dependencies, use build args in Dockerfile:
+#   docker build --build-arg INSTALL_ML=true --build-arg INSTALL_CLOUD=true .
+#
+# For lighter deployments, see individual requirement files:
+# - requirements-base.txt: Core dependencies only (no ML, cloud, analytics)
+# - requirements-ml.txt: Machine Learning & AI dependencies
+# - requirements-cloud.txt: Cloud storage integration dependencies (S3 only)
+# - requirements-analytics.txt: Data analytics dependencies
+# ============================================================================
+
+# ============================================================================
+# WEB FRAMEWORK & HTTP
+# ============================================================================
+fastapi==0.104.1  # Compatible with Python 3.11 and 3.12
+uvicorn[standard]==0.24.0  # Compatible with Python 3.11 and 3.12
+python-multipart==0.0.6
+httpx==0.25.2  # Compatible with Python 3.11 and 3.12
+requests>=2.31.0  # HTTP library for making requests
+
+# ============================================================================
+# DATA VALIDATION & SETTINGS
+# ============================================================================
+pydantic>=2.0.0,<3.0.0  # Compatible with Python 3.11 and 3.12
+pydantic-settings>=2.0.0,<3.0.0  # Compatible with Python 3.11 and 3.12
+email-validator>=2.0.0
+dnspython>=2.4.0  # For DNS/MX record validation
+
+# ============================================================================
+# DATABASE & ORM
+# ============================================================================
+SQLAlchemy==2.0.23  # Compatible with Python 3.11 and 3.12
+alembic==1.12.1  # Compatible with Python 3.11 and 3.12
+psycopg2-binary==2.9.9  # PostgreSQL adapter for Python
+
+# ============================================================================
+# AUTHENTICATION & SECURITY
+# ============================================================================
+PyJWT>=2.8.0,<3.0.0  # JWT token encoding/decoding
+cryptography==41.0.7  # Compatible with Python 3.11 and 3.12
+passlib[bcrypt]==1.7.4  # Password hashing
+bcrypt<4.0.0,>=3.2.0  # bcrypt hashing
+
+# ============================================================================
+# VECTOR DATABASE & SEARCH
+# ============================================================================
+# Primary: OpenSearch with AWS IAM support
+opensearch-py>=2.0,<3  # OpenSearch client for vector search and indexing
+requests-aws4auth>=1.2.0,<2  # AWS SigV4 signing for OpenSearch authentication
+
+# Legacy: Elasticsearch (deprecated, maintained for backward compatibility until Q2 2026)
+elasticsearch==8.12.0  # Elasticsearch client with native vector search support
+
+# ============================================================================
+# STORAGE & CLOUD (Object Storage - S3 only)
+# ============================================================================
+# AWS S3
+boto3==1.34.0  # AWS SDK
+
+# Azure Blob Storage
+azure-storage-blob>=12.19.0,<13.0.0  # Azure storage client
+
+# ============================================================================
+# MACHINE LEARNING & AI
+# ============================================================================
+sentence-transformers>=2.7.0,<3.0.0  # Text embeddings and semantic search
+openai>=1.0.0,<2.0.0  # OpenAI API client
+
+# ============================================================================
+# DATA PROCESSING & ANALYTICS
+# ============================================================================
+pandas>=2.0.0,<3.0.0  # Data analysis and manipulation
+numpy<2.0.0,>=1.24.0  # Numerical computing (explicit upper bound for compatibility)
+matplotlib>=3.8.0  # Plotting and visualization for report generation
+regex>=2023.0.0,<2024.0.0  # Regular expressions with additional features
+
+# ============================================================================
+# UTILITIES & HELPERS
+# ============================================================================
+tenacity==8.2.3  # Retry library with decorators
+# loguru==0.7.2  # Removed - using Python's built-in logging instead
+pypdf==3.17.4  # PDF text extraction
+python-docx>=0.8.11,<1.0.0  # DOCX file parsing and extraction
+reportlab>=4.0.0,<5.0.0  # PDF generation from extracted DOCX content
+packaging>=23.0,<25.0  # Version parsing and comparison
+
+# ============================================================================
+# PAYMENT PROCESSING
+# ============================================================================
+stripe>=5.0.0,<6.0.0  # Stripe payment processing
+
+# ============================================================================
+# TESTING (for development & CI)
+# ============================================================================
+pytest>=7.0.0,<8.0.0  # Testing framework
+pytest-cov>=4.0.0,<5.0.0  # Code coverage plugin
+pytest-asyncio>=0.21.0,<1.0.0  # Async test support
+
+# ============================================================================
+# NOTES
+# ============================================================================
+# - All versions are compatible with Python 3.11 and 3.12
+# - Dependencies are pinned to specific versions for reproducibility
+# - Optional features (ML, Cloud, Analytics) are included
+# - Testing dependencies are included for development/CI environments
+# - Excluded from base requirements (CI only):
+#   * sentence-transformers requires PyTorch (~900MB + CUDA ~2GB)
+#   * Heavy ML frameworks not needed for CI/basic testing

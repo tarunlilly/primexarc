@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      ".claude"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/require-merge-safety.sh" },
+          { "type": "command", "command": ".claude/hooks/enforce-artifactory.sh" }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": ".claude/hooks/enforce-boundary.sh" },
+          { "type": "command", "command": ".claude/hooks/require-db-review.sh" },
+          { "type": "command", "command": ".claude/hooks/enforce-artifactory.sh" },
+          { "type": "command", "command": ".claude/hooks/block-secrets.sh" }
+        ]
+      }
+    ]
+  }
+}

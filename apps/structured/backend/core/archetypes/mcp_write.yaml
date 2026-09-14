@@ -1,0 +1,10 @@
+id: mcp_write
+family: agent_access
+label: "MCP tool access (read + write)"
+capability_floor:
+  SEM: 3
+  GOV: 4
+  ACC: 3
+  AGG: 3
+  JOIN: 2
+gate_set: [privacy_column_names]

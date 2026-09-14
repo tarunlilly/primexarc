@@ -1,0 +1,11 @@
+id: supervised_regression
+family: model_dev
+label: "Supervised regression"
+capability_floor:
+  LBL: 2
+  LKG: 3
+  SIG: 3
+  VOL: 3
+  STA: 2
+  GOV: 2
+gate_set: [privacy_column_names, labels_leakage]

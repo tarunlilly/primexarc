@@ -1,0 +1,11 @@
+id: batch_scoring
+family: model_dev
+label: "Feature serving / online inference"
+capability_floor:
+  ACC: 4
+  FRS: 4
+  SIG: 3
+  JOIN: 3
+  GOV: 3
+  LIN: 3
+gate_set: [privacy_column_names]
