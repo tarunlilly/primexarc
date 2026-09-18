@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 780" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1440" height="780" fill="#f8fafc"/>
+  <text x="720" y="28" text-anchor="middle" font-size="20" font-weight="700" fill="#1e293b">PrimeXarc agent &amp; hook flow</text>
+  <text x="720" y="48" text-anchor="middle" font-size="12" fill="#52606d">How edits, commits, auth, and DB changes route through mechanical hooks, root merger agents, and per-app agents</text>
+
+  <!-- ============ ROW 1: triggers ============ -->
+  <g font-size="11" fill="#1e293b">
+    <g><rect x="20" y="70" width="166" height="50" rx="6" fill="#eef2f7" stroke="#94a3b8"/><text x="103" y="90" text-anchor="middle">Edit</text><text x="103" y="104" text-anchor="middle" font-weight="600">apps/structured/**</text></g>
+    <g><rect x="196" y="70" width="166" height="50" rx="6" fill="#eef2f7" stroke="#94a3b8"/><text x="279" y="90" text-anchor="middle">Edit</text><text x="279" y="104" text-anchor="middle" font-weight="600">apps/unstructured/**</text></g>
+    <g><rect x="372" y="70" width="166" height="50" rx="6" fill="#eef2f7" stroke="#94a3b8"/><text x="455" y="90" text-anchor="middle">Edit</text><text x="455" y="104" text-anchor="middle" font-weight="600">packages/shared-ui/**</text></g>
+    <g><rect x="548" y="70" width="166" height="50" rx="6" fill="#eef2f7" stroke="#94a3b8"/><text x="631" y="90" text-anchor="middle" font-weight="600">Edit auth code /</text><text x="631" y="104" text-anchor="middle" font-weight="600">ingress headers</text></g>
+    <g><rect x="724" y="70" width="166" height="50" rx="6" fill="#eef2f7" stroke="#94a3b8"/><text x="807" y="90" text-anchor="middle" font-weight="600">Edit DB schema /</text><text x="807" y="104" text-anchor="middle" font-weight="600">migration</text></g>
+    <g><rect x="900" y="70" width="166" height="50" rx="6" fill="#eef2f7" stroke="#94a3b8"/><text x="983" y="90" text-anchor="middle" font-weight="600">Bash: npm/pip install,</text><text x="983" y="104" text-anchor="middle" font-weight="600">Dockerfile FROM</text></g>
+    <g><rect x="1076" y="70" width="166" height="50" rx="6" fill="#eef2f7" stroke="#94a3b8"/><text x="1159" y="97" text-anchor="middle" font-weight="600">git commit / push</text></g>
+    <g><rect x="1252" y="70" width="166" height="50" rx="6" fill="#eef2f7" stroke="#94a3b8"/><text x="1335" y="90" text-anchor="middle" font-weight="600">Edit apps/shell/**</text><text x="1335" y="104" text-anchor="middle" font-weight="600">(Help / Support)</text></g>
+  </g>
+
+  <!-- ============ ROW 2: hooks ============ -->
+  <g font-size="11">
+    <g><rect x="20" y="160" width="220" height="46" rx="6" fill="#fde8e8" stroke="#c41a1a"/><text x="130" y="177" text-anchor="middle" font-weight="700" fill="#7f1414">enforce-boundary.sh</text><text x="130" y="192" text-anchor="middle" font-size="9" font-style="italic" fill="#7f1414">no override — hard block</text></g>
+    <g><rect x="315" y="160" width="220" height="46" rx="6" fill="#fde8e8" stroke="#c41a1a"/><text x="425" y="177" text-anchor="middle" font-weight="700" fill="#7f1414">block-secrets.sh</text><text x="425" y="192" text-anchor="middle" font-size="9" font-style="italic" fill="#7f1414">cleared by: remove secret</text></g>
+    <g><rect x="610" y="160" width="220" height="46" rx="6" fill="#fde8e8" stroke="#c41a1a"/><text x="720" y="177" text-anchor="middle" font-weight="700" fill="#7f1414">require-db-review.sh</text><text x="720" y="192" text-anchor="middle" font-size="9" font-style="italic" fill="#7f1414">cleared by: db-security-review agent</text></g>
+    <g><rect x="905" y="160" width="220" height="46" rx="6" fill="#fde8e8" stroke="#c41a1a"/><text x="1015" y="177" text-anchor="middle" font-weight="700" fill="#7f1414">enforce-artifactory.sh</text><text x="1015" y="192" text-anchor="middle" font-size="9" font-style="italic" fill="#7f1414">cleared by: point at Artifactory</text></g>
+    <g><rect x="1200" y="160" width="220" height="46" rx="6" fill="#fde8e8" stroke="#c41a1a"/><text x="1310" y="177" text-anchor="middle" font-weight="700" fill="#7f1414">require-merge-safety.sh</text><text x="1310" y="192" text-anchor="middle" font-size="9" font-style="italic" fill="#7f1414">cleared by: merge-safety skill</text></g>
+  </g>
+
+  <!-- ============ ROW 3: agent groups ============ -->
+  <!-- Group A: apps/structured (ARC) -->
+  <rect x="20" y="250" width="330" height="340" rx="8" fill="#eefdf3" stroke="#16794f" stroke-dasharray="5,4"/>
+  <text x="35" y="270" font-size="12" font-weight="700" fill="#0f5c3b">apps/structured/.claude/agents (ARC-scoped)</text>
+  <g font-size="11" fill="#0f5c3b">
+    <rect x="35" y="290" width="300" height="34" rx="5" fill="#ffffff" stroke="#16794f"/><text x="185" y="311" text-anchor="middle" font-weight="600">scorer-purity</text>
+    <rect x="35" y="330" width="300" height="34" rx="5" fill="#ffffff" stroke="#16794f"/><text x="185" y="351" text-anchor="middle" font-weight="600">llm-guardrails</text>
+    <rect x="35" y="370" width="300" height="34" rx="5" fill="#ffffff" stroke="#16794f"/><text x="185" y="391" text-anchor="middle" font-weight="600">llm-grounding</text>
+    <rect x="35" y="410" width="300" height="34" rx="5" fill="#ffffff" stroke="#16794f"/><text x="185" y="431" text-anchor="middle" font-weight="600">db-context</text>
+    <rect x="35" y="450" width="300" height="34" rx="5" fill="#ffffff" stroke="#16794f"/><text x="185" y="466" text-anchor="middle" font-weight="600">db-security-review</text><text x="185" y="478" text-anchor="middle" font-size="9" font-style="italic">schema: history_assessment</text>
+    <rect x="35" y="490" width="300" height="34" rx="5" fill="#ffffff" stroke="#16794f"/><text x="185" y="511" text-anchor="middle" font-weight="600">deployment</text>
+  </g>
+
+  <!-- Group B: root merger agents -->
+  <rect x="370" y="250" width="690" height="340" rx="8" fill="#eef6ff" stroke="#2563eb" stroke-dasharray="5,4"/>
+  <text x="385" y="270" font-size="12" font-weight="700" fill="#1d4ed8">Root merger agents (.claude/agents — this repo)</text>
+  <g font-size="11" fill="#1d4ed8">
+    <rect x="385" y="290" width="210" height="80" rx="5" fill="#ffffff" stroke="#2563eb"/><text x="490" y="313" text-anchor="middle" font-weight="600">boundary-guardian</text><text x="490" y="330" text-anchor="middle" font-size="9" font-style="italic">gates new shared-ui exports</text><text x="490" y="342" text-anchor="middle" font-size="9" font-style="italic">APPROVED / BLOCKED</text>
+    <rect x="610" y="290" width="210" height="80" rx="5" fill="#ffffff" stroke="#2563eb"/><text x="715" y="313" text-anchor="middle" font-weight="600">auth-unification-</text><text x="715" y="326" text-anchor="middle" font-weight="600">reviewer</text><text x="715" y="342" text-anchor="middle" font-size="9" font-style="italic">gates any auth/header change</text><text x="715" y="354" text-anchor="middle" font-size="9" font-style="italic">APPROVED / BLOCKED</text>
+    <rect x="835" y="290" width="210" height="80" rx="5" fill="#ffffff" stroke="#2563eb"/><text x="940" y="313" text-anchor="middle" font-weight="600">artifactory-</text><text x="940" y="326" text-anchor="middle" font-weight="600">compliance</text><text x="940" y="342" text-anchor="middle" font-size="9" font-style="italic">fixes non-Artifactory registry</text><text x="940" y="354" text-anchor="middle" font-size="9" font-style="italic">refs</text>
+
+    <rect x="385" y="390" width="210" height="80" rx="5" fill="#ffffff" stroke="#2563eb"/><text x="490" y="413" text-anchor="middle" font-weight="600">llm-boundary-auditor</text><text x="490" y="430" text-anchor="middle" font-size="9" font-style="italic">blocks shared LLM/Cortex</text><text x="490" y="442" text-anchor="middle" font-size="9" font-style="italic">helpers outside app boundary</text>
+    <rect x="610" y="390" width="210" height="80" rx="5" fill="#ffffff" stroke="#2563eb"/><text x="715" y="413" text-anchor="middle" font-weight="600">shell-design-sync</text><text x="715" y="430" text-anchor="middle" font-size="9" font-style="italic">keeps shell/Help/Support</text><text x="715" y="442" text-anchor="middle" font-size="9" font-style="italic">visually consistent</text>
+    <rect x="835" y="390" width="210" height="80" rx="5" fill="#ffffff" stroke="#2563eb"/><text x="940" y="413" text-anchor="middle" font-weight="600">ci-test-parity</text><text x="940" y="430" text-anchor="middle" font-size="9" font-style="italic">closes known test debt</text><text x="940" y="442" text-anchor="middle" font-size="9" font-style="italic">in monorepo CI</text>
+
+    <rect x="385" y="490" width="210" height="80" rx="5" fill="#ffffff" stroke="#2563eb"/><text x="490" y="513" text-anchor="middle" font-weight="600">repo-migration-agent</text><text x="490" y="530" text-anchor="middle" font-size="9" font-style="italic">history, branches, worktree</text><text x="490" y="542" text-anchor="middle" font-size="9" font-style="italic">sequencing</text>
+    <rect x="610" y="490" width="210" height="80" rx="5" fill="#ffffff" stroke="#2563eb"/><text x="715" y="513" text-anchor="middle" font-weight="600">observability-agent</text><text x="715" y="530" text-anchor="middle" font-size="9" font-style="italic">unifies error/latency/cost</text><text x="715" y="542" text-anchor="middle" font-size="9" font-style="italic">visibility across both apps</text>
+    <rect x="835" y="490" width="210" height="80" rx="5" fill="#ffffff" stroke="#2563eb"/><text x="940" y="509" text-anchor="middle" font-weight="600">quality gates (6 agents)</text><text x="940" y="524" text-anchor="middle" font-size="9">code-quality · maintainability</text><text x="940" y="537" text-anchor="middle" font-size="9">bug-finder · race-conditions</text><text x="940" y="550" text-anchor="middle" font-size="9">test-flakiness · prompt-optimizer</text>
+  </g>
+
+  <!-- Group C: apps/unstructured (PrimeData) -->
+  <rect x="1080" y="250" width="340" height="340" rx="8" fill="#fff7ed" stroke="#b45309" stroke-dasharray="5,4"/>
+  <text x="1095" y="270" font-size="12" font-weight="700" fill="#92400e">apps/unstructured/.claude/agents (PrimeData-scoped)</text>
+  <g font-size="11" fill="#92400e">
+    <rect x="1095" y="290" width="310" height="34" rx="5" fill="#ffffff" stroke="#b45309"/><text x="1250" y="311" text-anchor="middle" font-weight="600">pipeline-safety</text>
+    <rect x="1095" y="330" width="310" height="34" rx="5" fill="#ffffff" stroke="#b45309"/><text x="1250" y="351" text-anchor="middle" font-weight="600">connector-security</text>
+    <rect x="1095" y="370" width="310" height="34" rx="5" fill="#ffffff" stroke="#b45309"/><text x="1250" y="391" text-anchor="middle" font-weight="600">vector-store</text>
+    <rect x="1095" y="410" width="310" height="34" rx="5" fill="#ffffff" stroke="#b45309"/><text x="1250" y="426" text-anchor="middle" font-weight="600">db-security-review</text><text x="1250" y="438" text-anchor="middle" font-size="9" font-style="italic">schema: POSTGRES_SCHEMA</text>
+    <rect x="1095" y="450" width="310" height="34" rx="5" fill="#ffffff" stroke="#b45309"/><text x="1250" y="471" text-anchor="middle" font-weight="600">deployment</text>
+  </g>
+
+  <!-- ============ ROW 4: skills ============ -->
+  <g font-size="11" fill="#5b21b6">
+    <rect x="230" y="610" width="300" height="50" rx="6" fill="#f3e8ff" stroke="#7c3aed"/><text x="380" y="630" text-anchor="middle" font-weight="700">merge-safety (root skill)</text><text x="380" y="645" text-anchor="middle" font-size="9" font-style="italic">re-checks boundary + schema collisions</text>
+    <rect x="570" y="610" width="300" height="50" rx="6" fill="#f3e8ff" stroke="#7c3aed"/><text x="720" y="630" text-anchor="middle" font-weight="700">pre-deploy-validation</text><text x="720" y="645" text-anchor="middle" font-size="9" font-style="italic">apps/structured deploy safety</text>
+    <rect x="910" y="610" width="300" height="50" rx="6" fill="#f3e8ff" stroke="#7c3aed"/><text x="1060" y="630" text-anchor="middle" font-weight="700">db-connection-health</text><text x="1060" y="645" text-anchor="middle" font-size="9" font-style="italic">apps/structured DB checks</text>
+  </g>
+
+  <!-- ============ ARROWS ============ -->
+  <g stroke="#475569" fill="none" stroke-width="1.6" marker-end="url(#arrow)">
+    <!-- trigger -> hooks (mechanical, solid) -->
+    <line x1="103" y1="120" x2="128" y2="160"/>
+    <line x1="279" y1="120" x2="140" y2="160"/>
+    <line x1="455" y1="120" x2="180" y2="160"/>
+    <line x1="1335" y1="120" x2="200" y2="160"/>
+
+    <line x1="103" y1="120" x2="400" y2="160"/>
+    <line x1="279" y1="120" x2="415" y2="160"/>
+    <line x1="455" y1="120" x2="430" y2="160"/>
+    <line x1="1335" y1="120" x2="450" y2="160"/>
+
+    <line x1="807" y1="120" x2="720" y2="160"/>
+    <line x1="983" y1="120" x2="1015" y2="160"/>
+    <line x1="1159" y1="120" x2="1290" y2="160"/>
+  </g>
+
+  <g stroke="#475569" fill="none" stroke-width="1.4" stroke-dasharray="6,4" marker-end="url(#arrow)">
+    <!-- trigger -> agents (review gate, dashed) -->
+    <line x1="103" y1="120" x2="185" y2="250"/>
+    <line x1="279" y1="120" x2="1250" y2="250"/>
+    <line x1="455" y1="120" x2="480" y2="290"/>
+    <line x1="455" y1="120" x2="480" y2="390"/>
+    <line x1="631" y1="120" x2="700" y2="290"/>
+    <line x1="807" y1="120" x2="185" y2="250"/>
+    <line x1="807" y1="120" x2="1250" y2="250"/>
+    <line x1="983" y1="120" x2="925" y2="290"/>
+    <line x1="1335" y1="120" x2="700" y2="390"/>
+    <line x1="1335" y1="120" x2="475" y2="290"/>
+
+    <!-- git commit -> merge-safety skill (cleared-by relationship) -->
+    <line x1="1200" y1="206" x2="420" y2="610"/>
+  </g>
+
+  <!-- ============ LEGEND ============ -->
+  <g font-size="11" fill="#1e293b">
+    <text x="20" y="700" font-weight="700">Legend</text>
+    <rect x="20" y="712" width="16" height="16" fill="#fde8e8" stroke="#c41a1a"/><text x="42" y="724">Mechanical hook — hard block, no model judgment</text>
+    <rect x="330" y="712" width="16" height="16" fill="#eef6ff" stroke="#2563eb"/><text x="352" y="724">Root merger agent — APPROVED / BLOCKED contract</text>
+    <rect x="660" y="712" width="16" height="16" fill="#eefdf3" stroke="#16794f"/><text x="682" y="724">ARC-scoped agent (apps/structured)</text>
+    <rect x="900" y="712" width="16" height="16" fill="#fff7ed" stroke="#b45309"/><text x="922" y="724">PrimeData-scoped agent (apps/unstructured)</text>
+    <rect x="1180" y="712" width="16" height="16" fill="#f3e8ff" stroke="#7c3aed"/><text x="1202" y="724">Skill</text>
+
+    <line x1="20" y1="746" x2="60" y2="746" stroke="#475569" stroke-width="1.6" marker-end="url(#arrow)"/><text x="68" y="750">solid = mechanical block (fires automatically)</text>
+    <line x1="400" y1="746" x2="440" y2="746" stroke="#475569" stroke-width="1.4" stroke-dasharray="6,4" marker-end="url(#arrow)"/><text x="448" y="750">dashed = agent review gate / clearance</text>
+  </g>
+</svg>

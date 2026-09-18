@@ -19,13 +19,15 @@ whether to act on the recommendations.
 
 ## Phase status
 
+> Updated 2026-09-18 against actual code in this app (`apps/structured/`), not carried over from the pre-migration prototype doc. See "What's been built" below for detail. Note: this migrated copy lags the original `ibu-ai-ready-data` source repo by a small amount - a `lens_scores` recompute block in one rescore function in `scorer.py` exists in the source but not here yet. Worth a targeted sync if that function matters to current work.
+
 | Phase | Component       | State |
 |-------|-----------------|-------|
 | 0     | Prototype artifact (single-file React) | Complete |
-| 1     | Production frontend scaffold | In progress |
-| 2     | Backend (FastAPI + scorer + parser) | Not started |
-| 3     | LLM integration (`llm/advisor.py`) | Not started |
-| 4     | Assessment history | Future scope |
+| 1     | Production frontend | Complete - 9 pages, 10 shadcn primitives (see below) |
+| 2     | Backend (FastAPI + scorer + parser) | Complete - archetypes, capabilities, verdict engine added on top of the base scorer |
+| 3     | LLM integration (`llm/` package) | Complete - `advise()` plus evidence/purpose narrators and an adjudicator stub |
+| 4     | Assessment history | Complete - `History.jsx` is real and API-backed (`api.getHistory/clearHistory/deleteRun`), attestations table added (migration 0004) |
 
 ---
 
@@ -34,9 +36,9 @@ whether to act on the recommendations.
 | Decision | Rationale |
 |---|---|
 | Scoring is deterministic Python in production | LLM-based scoring in the prototype was inconsistent run-to-run on the same CSV. Determinism was the explicit fix. |
-| LLM only writes recommendations and the summary | Single responsibility: scoring is Python, language is the LLM. |
-| LLM integration isolated to `llm/advisor.py` | One integration point for the operator to swap providers. |
-| Tier thresholds: ≥65 green, 40–64 yellow, <40 red | Baked into spec and CLAUDE.md. |
+| LLM writes narrative, recommendations, and (since Phase 3 additions) evidence/purpose narration - never a score | Single responsibility: scoring is Python, language is the LLM. Enforced as a hard rule in `apps/structured/CLAUDE.md` - `advise()` may never write `score`/`tier`/`gated_by`. |
+| LLM integration isolated to the `llm/` package, `advise()` as the single public entry point | One integration point for the operator to swap providers. The package has grown (`advisor.py`, `annotator.py`, `evidence_narrator.py`, `purpose_narrator.py`, `synthesizer.py`, `adjudicator.py`, `guardrails.py`, `client.py`) but the one-entry-point contract still holds. |
+| Tier thresholds: ≥80 green, 60-79 yellow, <60 red, blocker gating caps overall at 59 | Updated from the original prototype thresholds (≥65/40-64/<40). Verified current in `backend/core/scorer.py` (`GREEN_MIN=80`, `YELLOW_MIN=60`, `BLOCKER_CAP=59`) and matches `apps/structured/CLAUDE.md`. Baked into spec - don't change without updating `spec.md`. |
 | Frontend is display-only | No scoring logic in React. All results come from the backend. |
 | CSV parser caps at 500 rows, sends profile not rows | Privacy — raw data never leaves the parser. |
 | Frontend `src/` uses `pages/`, `components/ui/`, `lib/` subdirs only | shadcn/ui convention; everything else stays flat. |
@@ -136,29 +138,47 @@ It's the canonical fixture for `tests/test_scorer.py`.
 
 ---
 
+## Known issues (current, not prototype-era)
+
+| Issue | Detail | Status |
+|---|---|---|
+| Two coexisting metadata-scoring code paths | `_r_dictionary_present` (`core/dimensions.py`) and `_build_metadata_quality` (`core/scorer.py`, called from two places) both score metadata quality. Not yet reconciled into one path. | Open - flag to the user before extending either; don't assume which one is authoritative. Also called out in root `CLAUDE.md` section 7. |
+| Migrated copy lags the source repo slightly | `backend/core/scorer.py` here is missing a `lens_scores` recompute block (~4 lines) present in `ibu-ai-ready-data`'s current `scorer.py`, in a rescore/blocker-override function. | Open - minor, but worth a targeted sync if that rescore path is touched. |
+| BOTL register was CSV-file-dependent (fixed pre-migration) | `_load_register()` resolved a path outside the Docker build context, raising `FileNotFoundError` on every DB assessment. | Fixed - the 44-field register is now a Python constant in `core/botl_register.py`, no file I/O at import time. |
+| OOM on multi-file CSV upload (fixed pre-migration) | All uploaded files held in memory simultaneously during parsing. | Fixed - raw bytes released immediately after each file is parsed. |
+| Redshift profiling gaps (fixed pre-migration) | `TABLESAMPLE` failed on small tables; column/table discovery missed views. | Fixed - `pg_catalog`-based discovery, `LIMIT` fallback when `TABLESAMPLE` fails, row cap lowered to 15k. |
+
+---
+
 ## What's been built
 
-**Phase 1 (in progress):**
-- `app/frontend/` scaffold migrated to Tailwind 3 + shadcn/ui
-- `pages/` (4 page files), `components/ui/` (7 shadcn primitives), `lib/` (api, dimensions, utils) — three subfolders only
-- `globals.css` holds all design tokens as HSL CSS variables (brand + tier palettes)
-- `tailwind.config.js` exposes the variables as utility classes
-- Real Lilly logo at `public/lilly-logo.png`, CSS-recolored white on red surfaces
-- Centered layouts on every page via Tailwind `container` class
-- Medium-soft edges throughout (12px default, 16px cards, 10px inputs)
-- Fraunces (display) / Bricolage Grotesque (body) / JetBrains Mono via Google Fonts
-- Layout surface flip via `red-mode` / `crimson-mode` classes — tokens remap, shadcn auto-themes
-- Full route flow runs, mock dashboard renders, support form submits with graceful "backend not wired" state
-- `api.js` single fetch client with `ApiError` class and AbortController support
-- `vite.config.js` proxies `/api/v1/*` → `localhost:8000` and configures `@/` path alias
+> Rewritten 2026-09-18 by direct file inventory of `apps/structured/`, cross-checked against the equivalent update just made in the `ibu-ai-ready-data` source repo. The previous "Phase 1 in progress" framing was stale and had already been carried through the migration unchanged - all four phases are functionally complete; see "still open" below for what remains.
 
-**Phase 1 (still to do):**
-- Real CSV parsing in `Assess.jsx` step 1 (PapaParse, browser-side)
-- Recharts radar chart on the dashboard
-- Linear accordion category breakdown with check-by-check expand
-- Markdown export panel
-- Playwright smoke tests
-- A `handover-writer` skill (created via skill-creator) for future handoffs
+**Frontend** (`frontend/src/`):
+- 9 pages: `Home`, `Assess`, `AssessRunView`, `Dashboard`, `HelpCenter`, `History`, `Console`, `Support`, `Account` (was 4 pages at the last update)
+- 10 shadcn/ui primitives: `badge`, `button`, `card`, `checkbox`, `flip-card`, `input`, `label`, `progress`, `tabs`, `textarea` (was 7)
+- `HelpCenter.jsx`: 5-chapter reference with a colorized flow diagram
+- `History.jsx`: real, API-backed via `api.getHistory()` / `clearHistory()` / `deleteRun()` - not a stub
+- Markdown export panel exists (`api.js` + `Dashboard.jsx`) - this was listed as "still to do" previously; it's done
+- `globals.css` / `tailwind.config.js` / surface-flip / typography / logo system unchanged from what's documented above in this file
+
+**Backend** (`backend/`):
+- Core scorer, parser, and 9 dimensions from the original Phase 2 scope, now with metadata-aware rules (see "known issues" above for the two coexisting metadata-scoring paths)
+- **Archetypes** (`core/archetypes/*.yaml` + `core/archetype_loader.py`): 12 use-case profiles - `agent_rag`, `batch_scoring`, `conformed_reference`, `feature_store`, `mcp_read`, `mcp_write`, `nl_query`, `reporting_analytics`, `semantic_search`, `supervised_classification`, `supervised_regression`, `time_series_forecast`
+- **Capabilities** (`core/capabilities.py`): BOTL register-driven capability scoring, register itself in `core/botl_register.py` (44 fields, embedded as a Python constant - see known issues)
+- **Verdict engine** (`core/verdict.py`): tier determination, separate from the per-dimension scorer
+- **LLM package** (`llm/`) grew from just `advisor.py` to: `advisor.py`, `annotator.py`, `evidence_narrator.py` + `prompts/evidence_narrator.py`, `purpose_narrator.py` + `prompts/purpose_summary.py`, `synthesizer.py`, `adjudicator.py` (stub, per this app's `CLAUDE.md` hybrid-route note), `guardrails.py`, `client.py`, `exceptions.py` - `advise()` remains the one public entry point
+- **Attestations**: new table via Alembic migration `0004_add_attestations_table.py` + matching `.sql` snapshot, `db/history_store.py` extended
+- Dimension redesigns carried over from source: Ops (watermark + partition rules), Temporal Integrity (5 rules rebuilt for ML readiness), Engineer Runbook (criticality bands, evidence-first tone)
+- Redshift profiling hardened (see known issues table)
+
+**Still open / not done:**
+- Recharts radar chart on the dashboard - not present (`grep` for `recharts`/`RadarChart` in `frontend/src` returns nothing)
+- Client-side CSV parsing (PapaParse) in `Assess.jsx` - not added; `papaparse` isn't in `package.json`. Parsing still happens server-side only.
+- Playwright smoke tests - no `.spec.*` files or `playwright.config` found anywhere in `frontend/`
+- The `handover-writer` skill mentioned in the previous version of this doc - never created; not found anywhere in this app or the source repo
+- Reconcile the two metadata-scoring code paths (`_r_dictionary_present` vs `_build_metadata_quality`) into one
+- The small `lens_scores` delta vs the source repo noted at the top of this file
 
 ---
 

@@ -13,9 +13,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Repo state (updated 2026-09-15):** All three apps are migrated and contain substantial codebases.
 `packages/shared-ui` remains a placeholder, consistent with the "extract last" sequencing.
 
-**Infra decision (locked 2026-09-08):** PrimeData's existing namespace (`primedata-dev`) and RDS instance (`primedata-db-dev`) are the baseline for the unified platform.
-ARC gets a new `history_assessment` schema on that same RDS and equivalent resources inside `primedata-dev`, replacing its separate `ibu-ai-ready-data-dev` namespace over time.
-See `docs/unification-runbook.md` for the step-by-step execution plan.
+**Infra decision (superseded 2026-09-18, reversed from the 2026-09-08 decision below):** ARC's existing RDS instance (`ibu-ai-ready-data-rds`) is now the database home. PrimeData's schema/tables get created there via its own unmodified Alembic migrations, landing in `public` (ARC's own tables stay in `history_assessment` - no collision). LLM calls for both apps authenticate via ARC's Cortex credentials (`ibu-ai-ready-data-cortex-llm`); PrimeData keeps its own endpoint shape and prompt logic. Routing is path-based on one domain (`x.com/structured`, `x.com/unstructured`), not subdomain-per-service. Neither app's backend or frontend code is relocated - a unified home/Help/Support layer and an ingress path rule sit on top. See `docs/opus-merger-plan.md` for the current step-by-step execution plan.
+
+**Prior decision (2026-09-08, no longer current):** PrimeData's namespace (`primedata-dev`) and RDS (`primedata-db-dev`) were briefly the intended baseline, with subdomain-based routing. Left here for history; `docs/unification-runbook.md` and `docs/architecture-unification-plan.md` reflect that superseded direction and should be read as background only, not as current instructions.
 
 **Migration sequence** (confirmed - see `repo-migration-agent`):
 1. Governance scaffold (done)
@@ -138,6 +138,7 @@ TTL markers: `.claude/.last-validated` (merge-safety) and `.claude/.last-db-revi
 | ARC's existing hard rules (scoring, LLM, DB, auth) | `apps/structured/CLAUDE.md` |
 | ARC's existing specialized agents | `apps/structured/.claude/agents/` |
 | Merger-specific agents | `.claude/agents/` (this repo) |
+| Map of every agent/hook/skill and how they gate each other | `docs/agent-map.md` |
 | Deterministic guardrails | `.claude/hooks/` + `.claude/settings.json` (see section 8 above) |
 | Pre-push validation | Invoke the `merge-safety` skill |
 | Portable rules for non-Claude tools | `AGENTS.md` (repo root) |
